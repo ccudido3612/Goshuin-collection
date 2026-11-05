@@ -1,0 +1,11 @@
+{
+  "name": "goshuin-map",
+  "version": "0.1.0",
+  "description": "手機優先的御朱印蒐集地圖（純前端，無建置步驟）",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "serve": "python -m http.server 8000"
+  }
+}
