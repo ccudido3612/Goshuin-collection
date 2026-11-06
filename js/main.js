@@ -176,9 +176,9 @@ function renderList() {
             { type: 'button', class: `row row--${entry.status} kind-${entry.kind}`, onclick: () => openDetail(entry.id, { fly: true }) },
             h(
               'span',
-              { class: 'row__kind', 'aria-hidden': 'true' },
-              h('span', { class: 'row__char' }, KIND_GLYPH[entry.kind]),
-              svgElement(KIND_ICON[entry.kind] ?? KIND_ICON.other, 'row__icon'),
+              { class: 'kindmark', 'aria-hidden': 'true' },
+              svgElement(KIND_ICON[entry.kind] ?? KIND_ICON.other),
+              h('span', { class: 'kindmark__char' }, KIND_GLYPH[entry.kind]),
             ),
             h(
               'span',

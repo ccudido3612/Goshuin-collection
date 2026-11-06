@@ -3,8 +3,13 @@
    配色：和紙 / 墨 / 朱 / 金（鳥居與御朱印的顏色）；寺用靛藍，和神社的朱紅區分。 */
 
 @font-face {
-  font-family: "Yuji Mai Subset"; /* 社・印 — 行書風的毛筆字，只含用到的字 */
-  src: url("../fonts/yuji-mai-subset.woff2") format("woff2");
+  font-family: "Aoyagi Subset"; /* 青柳隷書しも — 只含「社」「印」兩字 */
+  src: url("../fonts/aoyagi-subset.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aihara Subset"; /* 藍原相撲字 — 只含「寺」一字 */
+  src: url("../fonts/aihara-subset.woff2") format("woff2");
   font-display: swap;
 }
 @font-face {
@@ -35,8 +40,8 @@
   --font-ui: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "PingFang TC",
     "Microsoft JhengHei", "Yu Gothic", system-ui, sans-serif;
   --font-brand: "Yuji Boku Subset", "Hiragino Mincho ProN", "Noto Serif JP", "Yu Mincho", "Songti TC", "PMingLiU", serif;
-  --font-sha: "Yuji Mai Subset", var(--font-brand);
-  --font-tera: "Yuji Boku Subset", var(--font-brand);
+  --font-sha: "Aoyagi Subset", var(--font-brand);
+  --font-tera: "Aihara Subset", var(--font-brand);
 
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
@@ -228,25 +233,46 @@ button { cursor: pointer; }
   color: inherit;
 }
 
-/* 圖釘：神社 = 朱紅、寺 = 靛藍。實心 = 已集，淺底 = 想去。外圍白色細框讓它在任何底圖上都清楚。 */
-.pin { background: transparent; border: 0; --kc: var(--shu); --kc-ink: var(--shu-ink); }
-.pin.kind-temple { --kc: var(--ji); --kc-ink: var(--ji-ink); }
-.pin span {
-  display: grid;
+/* 圖釘與清單左側共用的「種類標記」：下層是圖案（神社＝朱紅鳥居、寺＝靛藍三重塔），
+   上層是毛筆字（白字加深色外框，放在任何底圖上都看得清楚）。
+   沒有底色，地圖只被圖案本身遮住一點點。想去＝只有輪廓，已集＝實心。 */
+.kindmark {
+  --kc: var(--shu);
+  --km: 48px;
+  position: relative;
+  display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--kc);
-  border-radius: 50%;
-  font-family: var(--font-sha);
-  font-size: 1.25rem;
-  line-height: 1;
-  box-shadow: 0 0 0 2px #fff, 0 1px 6px rgba(0, 0, 0, 0.5);
+  flex: none;
+  width: var(--km);
+  height: var(--km);
+  color: var(--kc);
 }
-.pin.kind-temple span { font-family: var(--font-tera); }
-.pin--got span { background: var(--kc); color: var(--kc-ink); }
-.pin--want span { background: #fffdf8; color: var(--kc); }
-.pin.is-selected span { box-shadow: 0 0 0 2px #fff, 0 0 0 7px color-mix(in srgb, var(--kc) 45%, transparent), 0 1px 6px rgba(0, 0, 0, 0.5); }
+.kind-temple .kindmark { --kc: var(--ji); }
+.kind-other .kindmark { --kc: var(--muted); }
+.kindmark svg { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.kindmark__char {
+  position: relative;
+  z-index: 1; /* 文字一定要在圖案上面 */
+  font-family: var(--font-sha);
+  font-size: calc(var(--km) * 0.74);
+  line-height: 1;
+  color: #1b1411;
+  /* 白色外框（八個方向的陰影，比 text-stroke 在各瀏覽器上都穩定）：深色字壓在朱紅／靛藍的圖案上也看得清楚 */
+  text-shadow:
+    -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff,
+    0 -1.5px 0 #fff, 0 1.5px 0 #fff, -1.5px 0 #fff, 1.5px 0 #fff,
+    0 0 5px #fff;
+}
+.kind-temple .kindmark__char { font-family: var(--font-tera); }
+.pin--want .kindmark svg *, .row--want .kindmark svg * { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linejoin: round; }
+
+.pin { background: transparent; border: 0; }
+.pin .kindmark { --kc: var(--shu); --km: 40px; }
+.pin.kind-temple .kindmark { --kc: var(--ji); }
+.pin.kind-other .kindmark { --kc: #6b625a; }
+.pin .kindmark svg { filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+.pin.is-selected .kindmark { transform: scale(1.2); }
+.pin.is-selected .kindmark svg { filter: drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 3px var(--gold)); }
 .me-dot { fill: #2b6cff; fill-opacity: 1; stroke: #fff; stroke-width: 3; }
 .me-accuracy { fill: #2b6cff; fill-opacity: 0.12; stroke: #2b6cff; stroke-width: 1; }
 
@@ -304,22 +330,10 @@ button { cursor: pointer; }
   background: var(--surface);
   text-align: left;
 }
-/* 清單左側：毛筆字（社／寺）+ 後面接圖案（鳥居／三重塔）。神社朱紅、寺靛藍，顏色與圖案雙重區分。 */
-.row { --kc: var(--shu); --kc-ink: var(--shu-ink); }
-.row.kind-temple { --kc: var(--ji); --kc-ink: var(--ji-ink); }
-.row.kind-other { --kc: var(--muted); }
-.row--got { border-color: color-mix(in srgb, var(--kc) 55%, var(--line)); }
-.row__kind {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 56px;
-  color: var(--kc);
-}
-.row__char { font-family: var(--font-sha); font-size: 1.75rem; line-height: 1; }
-.row.kind-temple .row__char { font-family: var(--font-tera); }
-.row__icon { width: 24px; height: 28px; flex: none; }
-.row--got .row__kind { padding: 4px 6px; border-radius: 10px; background: color-mix(in srgb, var(--kc) 14%, transparent); }
+/* 清單左側的標記用上面的 .kindmark，這裡只調大小與已集的外框顏色 */
+.row .kindmark { --km: 52px; }
+.row--got { border-color: color-mix(in srgb, var(--kc, var(--shu)) 55%, var(--line)); }
+.row.kind-temple { --kc: var(--ji); }
 .row__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .row__meta { display: block; font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pill { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }

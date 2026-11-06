@@ -3,6 +3,12 @@
 
 import { KIND_GLYPH, displayName, hasLocation } from './model.js';
 import { loadPref, savePref } from './store.js';
+import { KIND_ICON } from './icons.js';
+
+/** 圖案 + 文字的 HTML（常數字串，不含使用者輸入）。清單裡的 kindMark 用的是同一套 class。 */
+export function kindMarkHtml(kind) {
+  return `<span class="kindmark">${KIND_ICON[kind] ?? KIND_ICON.other}<span class="kindmark__char">${KIND_GLYPH[kind] ?? '印'}</span></span>`;
+}
 
 const L = window.L; // 由 index.html 先載入的 vendor/leaflet/leaflet.js 提供
 
@@ -38,14 +44,15 @@ export function createMap(container, { onMapClick, onPinClick }) {
   L.control.zoom({ position: 'topright' }).addTo(map);
   map.attributionControl.setPrefix(false);
 
-  let baseName = loadPref('base', 'gsi');
-  if (!BASES[baseName]) baseName = 'gsi';
+  // 預設是 OpenStreetMap。偏好設定換了新名字（base2），讓舊版存下的選擇不再生效，所有裝置一開始都是同一張底圖。
+  let baseName = loadPref('base2', 'osm');
+  if (!BASES[baseName]) baseName = 'osm';
   let baseLayer = null;
   const useBase = (name) => {
     if (baseLayer) baseLayer.remove();
     baseName = name;
     baseLayer = L.tileLayer(BASES[name].url, BASES[name].options).addTo(map);
-    savePref('base', name);
+    savePref('base2', name);
   };
   useBase(baseName);
 
@@ -54,12 +61,13 @@ export function createMap(container, { onMapClick, onPinClick }) {
 
   map.on('click', (e) => onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng }));
 
+  // 圖釘 = 圖案（鳥居／三重塔，只有輪廓或單色、沒有底色）＋疊在上面的毛筆字。樣式在 css 的 .kindmark。
   const iconFor = (entry, selected) =>
     L.divIcon({
       className: `pin pin--${entry.status} kind-${entry.kind}${selected ? ' is-selected' : ''}`,
-      html: `<span>${KIND_GLYPH[entry.kind] ?? '印'}</span>`,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
+      html: kindMarkHtml(entry.kind),
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
     });
 
   return {
@@ -102,7 +110,7 @@ export function createMap(container, { onMapClick, onPinClick }) {
 
     /** 底圖在 gsi 與 osm 之間切換，回傳新的名稱。 */
     toggleBase() {
-      useBase(baseName === 'gsi' ? 'osm' : 'gsi');
+      useBase(baseName === 'osm' ? 'gsi' : 'osm');
       return BASES[baseName].label;
     },
     baseLabel: () => BASES[baseName].label,
