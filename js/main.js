@@ -31,6 +31,7 @@ import {
 import { readPhotoMeta, makeThumb, photoKey } from './photo.js';
 import { createMap } from './map.js';
 import { parseGoogleList, itemsToEntries } from './gmaps.js';
+import { parseMapsLink, createGeocoder } from './geocode.js';
 import { planTiles, iterateTiles, estimateMB } from './tiles.js';
 import {
   registerServiceWorker,
@@ -246,6 +247,7 @@ function openAddMenu() {
       item('在地圖上選位置', '點一下地圖，放一個「想去」的地點。', () => {
         startPlacing({});
       }),
+      item('貼上 Google 地圖連結', '在 Google 地圖按分享、拷貝連結，再貼到這裡。會用名稱搜尋位置。', openPasteSheet),
       h(
         'p',
         { class: 'tip' },
@@ -383,6 +385,7 @@ function detailContent(entry) {
         { class: 'loc__row' },
         h('button', { type: 'button', class: 'btn', onclick: () => startPlacing({ id: entry.id }) }, '在地圖上點選'),
         h('button', { type: 'button', class: 'btn', onclick: () => setHere(entry) }, '用現在位置'),
+        h('button', { type: 'button', class: 'btn', onclick: () => searchLocationFor(entry) }, '用名稱搜尋位置'),
         hasLocation(entry)
           ? h('a', { href: mapsUrl(entry.lat, entry.lng), target: '_blank', rel: 'noopener' }, '在 Google 地圖開啟')
           : null,
@@ -546,6 +549,158 @@ async function setHere(entry) {
   map.showMe(pos.lat, pos.lng, pos.accuracy);
   openDetail(entry.id, { fly: true });
   toast('已更新位置');
+}
+
+/* ---------- 用名稱搜尋位置／從 Google 地圖連結新增 ---------- */
+
+const geocoder = createGeocoder();
+
+/**
+ * 顯示「名稱 → 候選地點」面板，使用者點一個才算數（同名神社很多，不能全自動）。
+ * onPick(候選)；onBack() 是面板底部那顆按鈕的動作。
+ */
+function openLocationSearch({ title, query, onPick, onBack, backLabel }) {
+  const list = h('div', { class: 'menu' });
+  const input = h('input', { type: 'search', value: query, 'aria-label': '搜尋的名稱', autocomplete: 'off' });
+  const searchBtn = h('button', { type: 'button', class: 'btn' }, '搜尋');
+  const root = h(
+    'div',
+    { class: 'menu' },
+    h('div', { class: 'loc__row' }, input, searchBtn),
+    list,
+    h('button', { type: 'button', class: 'btn btn--quiet', onclick: onBack }, backLabel),
+  );
+
+  const run = async () => {
+    const q = input.value.trim();
+    if (!q) return;
+    list.replaceChildren(h('p', { class: 'offline__note' }, `搜尋「${q}」中…`));
+    const { results, error } = await geocoder.search(q);
+    if (!root.isConnected) return; // 等待期間使用者已經關掉面板
+    if (results.length === 0) {
+      list.replaceChildren(
+        h('p', { class: 'offline__warn' }, error ? `${error}。請確認有網路，或改用「在地圖上點選」。` : '找不到符合的地點。可以換個關鍵字（例如加上地名）再搜尋。'),
+      );
+      return;
+    }
+    list.replaceChildren(
+      ...results.map((c) =>
+        h(
+          'button',
+          { type: 'button', class: 'menu__item', onclick: () => onPick(c) },
+          h('strong', {}, c.title || q),
+          h('span', {}, `${c.detail}（${c.source}）`),
+        ),
+      ),
+      h('p', { class: 'offline__note' }, '請確認地名與地址是你要的那一個，再點選。'),
+    );
+  };
+  searchBtn.addEventListener('click', run);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') run();
+  });
+
+  openSheet(title, root);
+  run();
+}
+
+/** 已經有名稱、沒有位置（或位置不對）的紀錄：搜尋位置後更新。 */
+function searchLocationFor(entry) {
+  openLocationSearch({
+    title: '搜尋位置',
+    query: entry.name,
+    backLabel: '返回',
+    onBack: () => openDetail(entry.id),
+    onPick: (c) => {
+      entry.lat = c.lat;
+      entry.lng = c.lng;
+      commit();
+      openDetail(entry.id, { fly: true });
+      toast('已更新位置');
+    },
+  });
+}
+
+/** 加入一筆「想去」。已經有同一筆（同名稱與連結）就不重複加，回傳 null。 */
+function addWantEntry({ name, link, lat, lng }) {
+  const [entry] = itemsToEntries([{ name, note: '', link, lat, lng }]);
+  const merged = mergeImported(state.entries, [entry]);
+  if (merged.added === 0) return null;
+  state.entries = merged.entries;
+  commit();
+  return entry;
+}
+
+/**
+ * 處理一段 Google 地圖的分享內容（連結或「名稱＋連結」的文字）。
+ * 有座標 → 直接加入；有名稱 → 搜尋位置讓使用者確認；只有短連結 → 先放進「待定位」。
+ */
+function addFromMapsText(raw) {
+  const parsed = parseMapsLink(raw);
+  if (!parsed) {
+    toast('這不是 Google 地圖的連結。', 6000);
+    return;
+  }
+  const finish = (entry, message) => {
+    if (!entry) return toast('這個地點已經在清單裡了。', 4000);
+    openDetail(entry.id, { fly: hasLocation(entry) });
+    toast(message, 6000);
+  };
+
+  if (parsed.lat !== null) {
+    finish(addWantEntry({ name: parsed.name, link: parsed.link, lat: parsed.lat, lng: parsed.lng }), '已加入「想去」');
+    return;
+  }
+  if (!parsed.query) {
+    finish(
+      addWantEntry({ name: '', link: parsed.link, lat: null, lng: null }),
+      '短連結裡沒有名稱，已先放進「待定位」。請在詳細頁輸入名稱後按「用名稱搜尋位置」。',
+    );
+    return;
+  }
+  openLocationSearch({
+    title: `加入「${parsed.name || parsed.query}」`,
+    query: parsed.query,
+    backLabel: '找不到？先加入「待定位」',
+    onBack: () => {
+      const entry = addWantEntry({ name: parsed.name, link: parsed.link, lat: null, lng: null });
+      closeSheet();
+      if (entry) toast('已加入「待定位」', 4000);
+    },
+    onPick: (c) => finish(addWantEntry({ name: parsed.name || c.title, link: parsed.link, lat: c.lat, lng: c.lng }), '已加入「想去」'),
+  });
+}
+
+function openPasteSheet() {
+  const box = h('textarea', {
+    rows: '4',
+    placeholder: '貼上 Google 地圖分享的連結或文字',
+    'aria-label': 'Google 地圖連結',
+  });
+  openSheet(
+    '貼上 Google 地圖連結',
+    h(
+      'div',
+      { class: 'menu' },
+      box,
+      h('button', { type: 'button', class: 'btn btn--primary', onclick: () => addFromMapsText(box.value) }, '新增'),
+      h(
+        'p',
+        { class: 'tip' },
+        'Google 地圖分享出來的短連結（maps.app.goo.gl 開頭）裡沒有名稱和座標，網頁沒辦法自己展開，只能先放進「待定位」。如果貼的是完整網址（google.com/maps?q=… 這種），會用裡面的地名搜尋位置。',
+      ),
+    ),
+  );
+}
+
+/** 網址帶 ?add=（例如從 iOS 捷徑開啟）時，處理後把參數拿掉，重新整理才不會重複新增。 */
+function handleAddParam() {
+  const params = new URLSearchParams(location.search);
+  const raw = params.get('add');
+  if (raw === null) return;
+  params.delete('add');
+  history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : ''));
+  addFromMapsText(raw);
 }
 
 /* ---------- 從照片匯入 ---------- */
@@ -966,6 +1121,7 @@ requestAnimationFrame(() => map.refresh());
 
 // 離線：沒有網路時在標題旁顯示「離線中」；註冊 service worker（只有 https 才會成功）
 watchOnline((online) => ($('#offlineChip').hidden = online));
+handleAddParam();
 registerServiceWorker({
   onUpdate: () => toast('已更新到新版。關掉再重新開啟 App 後生效。', 8000),
 }).then((registration) => {

@@ -9,7 +9,7 @@
 //
 // 這是「classic」service worker，不能用 import，所以 TILE_CACHE 的名稱要和 js/offline.js 的一致。
 
-const VERSION = '2026-11-02-2';
+const VERSION = '2026-11-06-1';
 const SHELL_CACHE = `shell-${VERSION}`;
 const TILE_CACHE = 'tiles-v1';
 const MAX_TILES = 4000; // 圖磚快取上限，超過就刪最舊的
@@ -33,6 +33,7 @@ const SHELL_FILES = [
   'js/tiles.js',
   'js/offline.js',
   'js/gmaps.js',
+  'js/geocode.js',
   'vendor/leaflet/leaflet.js',
   'vendor/leaflet/leaflet.css',
   'vendor/leaflet/images/layers.png',

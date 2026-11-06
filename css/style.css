@@ -435,3 +435,10 @@ button { cursor: pointer; }
 .progress { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .progress > span { display: block; height: 100%; width: 0; background: var(--shu); transition: width 0.15s; }
 .btn:disabled { opacity: 0.45; }
+
+/* ---------- 位置搜尋、貼上連結 ---------- */
+
+.menu input[type="search"], .menu textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.menu textarea { resize: vertical; }
+.menu .loc__row { display: flex; gap: 8px; }
+.menu .loc__row input { flex: 1; min-width: 0; }
