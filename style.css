@@ -1,0 +1,584 @@
+/* 御朱印地圖 — 樣式
+   版面：手機直式優先（上方狀態列 / 中間地圖 / 下方分頁列），寬螢幕時詳細資料改成右側面板。
+   配色：和紙 / 墨 / 朱 / 金（鳥居與御朱印的顏色）；寺用靛藍，和神社的朱紅區分。 */
+
+@font-face {
+  font-family: "Aoyagi Subset"; /* 青柳隷書しも — 只含「社」「印」兩字 */
+  src: url("../fonts/aoyagi-subset.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Masa Subset"; /* 正風毛筆字體（MasaFont Bold，OFL 1.1）— 只含「寺」一字 */
+  src: url("../fonts/masa-subset.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yuji Boku Subset"; /* 寺・標題 — 較沉穩的楷書風毛筆字 */
+  src: url("../fonts/yuji-boku-subset.woff2") format("woff2");
+  font-display: swap;
+}
+
+:root {
+  /* 淺色：和紙底、白木面板、墨色分頁列、朱紅強調 */
+  --bg: #f6f1e7;
+  --surface: #fffdf8;
+  --surface-2: #ece5d6;
+  --ink: #231f1d;
+  --muted: #5e564e;
+  --line: #d8cfbd;
+  --shu: #c8382b;
+  --shu-ink: #ffffff;
+  --ji: #2b4c7e;          /* 寺：藍（靛） */
+  --ji-ink: #ffffff;
+  --gold: #d4af37;
+  --goldmark: #e3a400; /* 額束、相輪的金黃色（要在朱紅／靛藍旁邊也看得到） */
+  --bar: #231f1d;         /* 分頁列（墨） */
+  --bar-ink: #f6f1e7;
+  --bar-muted: #b5aca0;
+  --danger: #b42318;
+  --focus: #1a5fd0;
+
+  --font-ui: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "PingFang TC",
+    "Microsoft JhengHei", "Yu Gothic", system-ui, sans-serif;
+  --font-brand: "Yuji Boku Subset", "Hiragino Mincho ProN", "Noto Serif JP", "Yu Mincho", "Songti TC", "PMingLiU", serif;
+  --font-sha: "Aoyagi Subset", var(--font-brand);
+  --font-tera: "Masa Subset", var(--font-brand);
+
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14110f;
+    --surface: #1f1b18;
+    --surface-2: #2b2622;
+    --ink: #f1eadf;
+    --muted: #a89f94;
+    --line: #38312b;
+    --shu: #e5574d;
+    --shu-ink: #1b0f0e;
+    --ji: #8fb0e0;
+    --ji-ink: #0e1a2b;
+    --gold: #d9b35a;
+    --goldmark: #f0c23a;
+    --bar: #1f1b18;
+    --bar-ink: #f1eadf;
+    --bar-muted: #a89f94;
+    --danger: #f0786d;
+    --focus: #7fb0ff;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- 整體版面 ---------- */
+
+.app {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) var(--gutter-r) 10px var(--gutter-l);
+  background: var(--surface);
+  border-bottom: 2px solid var(--shu);
+}
+.brandwrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.offline-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 0.75rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.brand {
+  margin: 0;
+  font-family: var(--font-brand);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.3125rem;
+  font-weight: 400; /* 毛筆字體本身就夠粗，不再加粗 */
+  letter-spacing: 0.08em;
+}
+.brand__torii { width: 26px; height: 23px; color: var(--shu); flex: none; }
+.stats { margin: 0; display: flex; gap: 10px; font-size: 0.875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stat--got { color: var(--shu); font-weight: 700; }
+
+.stage { position: relative; min-height: 0; }
+#map { position: absolute; inset: 0; isolation: isolate; background: var(--surface-2); }
+#map.is-placing { cursor: crosshair; }
+#map.is-placing .leaflet-interactive { cursor: crosshair; }
+
+.tabbar {
+  position: relative;
+  z-index: 600; /* 要在地圖（Leaflet 內部 z-index 到 1000）之上，中間的 ＋ 才不會被地圖蓋住 */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--gutter-r) calc(env(safe-area-inset-bottom, 0px) + 6px) var(--gutter-l);
+  background: var(--bar);
+  color: var(--bar-ink);
+}
+.tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--bar-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.tab svg { width: 24px; height: 24px; }
+.tab .pin-icon { width: 22px; height: 26px; } /* Google 地圖舊版風格的紅色圖釘：顏色寫在圖裡，不隨分頁狀態變 */
+/* 目前所在的分頁：金色字 + 上方一條金色線，和另一個按鈕一眼就能分開 */
+.tab[aria-current="page"] { color: var(--gold); }
+.tab[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 22%;
+  right: 22%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--gold);
+}
+.fab {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0; /* 完全在分頁列裡面，不再往上蓋到地圖 */
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--shu);
+  color: var(--shu-ink);
+  box-shadow: 0 0 0 2px var(--gold);
+}
+.fab svg { width: 22px; height: 22px; display: block; } /* 用畫的加號，才會真的在圓心 */
+
+/* ---------- 地圖上的浮動元件 ---------- */
+
+.map-tools {
+  position: absolute;
+  z-index: 500;
+  top: 12px;
+  left: var(--gutter-l);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.leaflet-top.leaflet-right { margin-right: max(0px, calc(env(safe-area-inset-right, 0px) - 6px)); }
+.leaflet-bar a { background-color: var(--surface); color: var(--ink); border-bottom-color: var(--line); }
+.leaflet-container { font-family: var(--font-ui); }
+.leaflet-container a { color: var(--focus); }
+
+.placing {
+  position: absolute;
+  z-index: 600;
+  left: var(--gutter-l);
+  right: var(--gutter-r);
+  top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--radius);
+  background: var(--shu);
+  color: var(--shu-ink);
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.placing button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+}
+
+/* 圖釘與清單左側共用的「種類標記」：下層是圖案（神社＝朱紅鳥居、寺＝靛藍三重塔），
+   上層是毛筆字（白字加深色外框，放在任何底圖上都看得清楚）。
+   沒有底色，地圖只被圖案本身遮住一點點。想去＝只有輪廓，已集＝實心。 */
+.kindmark {
+  --kc: var(--shu);
+  --km: 48px;
+  --cs: 0.56; /* 文字大小 ÷ 標記大小：約為圖案高度的 2/3 */
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  width: var(--km);
+  height: var(--km);
+  color: var(--kc);
+}
+.kind-temple .kindmark { --kc: var(--ji); --cs: 0.62; }
+.kind-other .kindmark { --kc: var(--muted); --cs: 0.5; }
+.gold { fill: var(--goldmark); }
+.kindmark svg { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.kindmark svg .gold { fill: var(--goldmark) !important; stroke: none !important; }
+/* 文字放在圖案正下方（底部置中）：上面留出笠木、相輪等圖案的特徵 */
+.kindmark__char {
+  position: relative;
+  z-index: 1; /* 文字一定要在圖案上面 */
+  align-self: end;
+  justify-self: center;
+  font-family: var(--font-sha);
+  font-size: calc(var(--km) * var(--cs));
+  line-height: 1;
+  color: #1b1411;
+  /* 白色外框（八個方向的陰影，比 text-stroke 在各瀏覽器上都穩定）：深色字壓在朱紅／靛藍的圖案上也看得清楚 */
+  text-shadow:
+    -1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff,
+    0 -1.5px 0 #fff, 0 1.5px 0 #fff, -1.5px 0 #fff, 1.5px 0 #fff,
+    0 0 5px #fff;
+}
+.kind-other .kindmark__char { align-self: center; }
+.kind-temple .kindmark__char { font-family: var(--font-tera); }
+.pin--want .kindmark svg *, .row--want .kindmark svg * { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linejoin: round; }
+
+.pin { background: transparent; border: 0; }
+.pin .kindmark { --kc: var(--shu); --km: 44px; }
+.pin.kind-temple .kindmark { --kc: var(--ji); }
+.pin.kind-other .kindmark { --kc: #6b625a; }
+.pin .kindmark svg { filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+.pin.is-selected .kindmark { transform: scale(1.2); }
+.pin.is-selected .kindmark svg { filter: drop-shadow(0 0 3px var(--gold)) drop-shadow(0 0 3px var(--gold)); }
+.me-dot { fill: #2b6cff; fill-opacity: 1; stroke: #fff; stroke-width: 3; }
+.me-accuracy { fill: #2b6cff; fill-opacity: 0.12; stroke: #2b6cff; stroke-width: 1; }
+
+/* ---------- 清單分頁 ---------- */
+
+.listview {
+  position: absolute;
+  inset: 0;
+  z-index: 800;
+  overflow-y: auto;
+  background: var(--bg);
+  padding-bottom: 24px;
+}
+.list__tools {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  padding: 12px var(--gutter-r) 12px var(--gutter-l);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.list__tools input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.875rem;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.list { list-style: none; margin: 0; padding: 8px var(--gutter-r) 0 var(--gutter-l); display: grid; gap: 8px; }
+.list__empty { padding: 32px 8px; text-align: center; color: var(--muted); }
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+/* 清單左側的標記用上面的 .kindmark，這裡只調大小與已集的外框顏色 */
+.row .kindmark { --km: 52px; }
+.row--got { border-color: color-mix(in srgb, var(--kc, var(--shu)) 55%, var(--line)); }
+.row.kind-temple { --kc: var(--ji); }
+.row__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.row__meta { display: block; font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pill { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.pill--got { border-color: var(--shu); color: var(--shu); font-weight: 700; }
+.pill--warn { border-style: dashed; }
+
+.backup { margin: 24px var(--gutter-r) 0 var(--gutter-l); padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.backup h2 { margin: 0 0 4px; font-size: 1rem; }
+.backup p { margin: 0 0 12px; font-size: 0.875rem; color: var(--muted); }
+.backup__row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-weight: 600;
+}
+.btn--primary { background: var(--shu); border-color: var(--shu); color: var(--shu-ink); }
+.btn--quiet { background: transparent; }
+.btn--danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.btn.is-armed { background: var(--danger); color: var(--shu-ink); border-color: var(--danger); }
+
+/* ---------- 底部面板（寬螢幕時是右側面板） ---------- */
+
+.backdrop { position: fixed; inset: 0; z-index: 1900; background: rgba(0, 0, 0, 0.4); }
+.sheet {
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: min(82dvh, 760px);
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px var(--gutter-r) 8px var(--gutter-l);
+}
+.sheet__head h2 { margin: 0; font-size: 0.75rem; }
+.icon-btn { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface-2); font-size: 1.5rem; line-height: 1; }
+.sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px var(--gutter-r) 20px var(--gutter-l);
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.menu { display: grid; gap: 10px; }
+.menu__item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+.menu__item strong { font-size: 0.75rem; }
+.menu__item span { font-size: 0.625rem; color: var(--muted); }
+.tip { margin: 0; font-size: 0.625rem; color: var(--muted); }
+
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > label, .field__label { font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
+.field input[type="text"], .field input[type="date"], .field textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.field textarea { resize: vertical; }
+.seg { display: flex; gap: 6px; }
+.seg__btn {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-weight: 600;
+}
+.seg__btn[aria-pressed="true"] { background: var(--shu); border-color: var(--shu); color: var(--shu-ink); }
+.loc { display: grid; gap: 8px; }
+.loc__text { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.loc__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.loc__addr { margin: 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.loc__addr--none { color: var(--muted); }
+.btn--google { display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: var(--ink); background: var(--surface); border-color: var(--ji); }
+.btn--google svg { width: 18px; height: 18px; }
+.sample-hint { margin: 0; padding: 8px 12px; border-radius: var(--radius); background: var(--surface-2); font-size: 0.8125rem; color: var(--muted); }
+
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.photo { position: relative; margin: 0; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo__rm {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+}
+.photo__rm.is-armed { background: var(--danger); }
+
+/* ---------- 提示訊息 ---------- */
+
+.toast {
+  position: fixed;
+  z-index: 3000;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 64px); /* 放在上方，才不會蓋住下方的「完成」等按鈕 */
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(92vw, 520px);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.9375rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.busy { position: fixed; inset: 0; z-index: 3500; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); }
+.busy p { margin: 0; padding: 14px 20px; border-radius: var(--radius); background: var(--surface); font-weight: 600; }
+
+.notice { margin: 16px; padding: 16px; border: 2px solid var(--shu); border-radius: var(--radius); background: var(--surface); }
+.notice p { margin: 0 0 8px; }
+.notice code { padding: 2px 6px; border-radius: 6px; background: var(--surface-2); }
+
+@media (min-width: 700px) {
+  .backdrop { display: none; }
+  /* 寬螢幕：面板夾在「縮放按鈕下方」與「分頁列上方」之間，不蓋到地圖右上的縮放鈕和下方的分頁列。 */
+  .sheet {
+    left: auto;
+    right: 16px;
+    top: auto;
+    bottom: calc(var(--tabbar-h, 64px) + 12px);
+    width: 340px;
+    max-height: calc(100dvh - var(--topbar-h, 56px) - var(--tabbar-h, 64px) - 96px);
+    border-radius: 18px;
+    padding-bottom: 0;
+  }
+  .sheet .menu__item { padding: 10px 14px; }
+  .sheet .menu { gap: 8px; }
+  .sheet__head { padding-top: 10px; padding-bottom: 4px; }
+  .listview .list, .listview .list__tools, .listview .backup { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .listview .list__tools { padding-left: 16px; padding-right: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+
+/* ---------- 離線地圖 ---------- */
+
+.offline { display: flex; flex-direction: column; gap: 14px; }
+.offline p { margin: 0; }
+.offline__status { padding: 12px; border-radius: var(--radius); background: var(--surface-2); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.offline__status p + p { margin-top: 4px; }
+.offline__note { font-size: 0.8125rem; color: var(--muted); }
+.offline__plan { font-weight: 700; font-variant-numeric: tabular-nums; }
+.offline__warn { font-size: 0.875rem; color: var(--danger); }
+.offline select { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.progress { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.progress > span { display: block; height: 100%; width: 0; background: var(--shu); transition: width 0.15s; }
+.btn:disabled { opacity: 0.45; }
+
+/* ---------- 位置搜尋、貼上連結 ---------- */
+
+.menu input[type="search"], .menu textarea { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.menu textarea { resize: vertical; }
+.menu .loc__row { display: flex; gap: 8px; }
+.menu .loc__row input { flex: 1; min-width: 0; }
+
+/* ---------- 彈出面板配色（方案 B：朱紅外框 + 米白內容） ----------
+   朱紅是外框與標題列；一般表單的內容放在米白底的內襯裡（深色模式也一樣，所以文字固定用墨色）。
+   只有選項選單（新增、搜尋位置、貼上連結）是米白卡片直接放在朱紅上。 */
+
+.sheet { background: #c8382b; color: #fff; }
+.sheet__head h2 { color: #fff; }
+.icon-btn {
+  position: relative;
+  width: 30px; /* 原本 44px 的 2/3 */
+  height: 30px;
+  background: #fff;
+  color: #c8382b;
+  font-size: 1.125rem;
+}
+.icon-btn::after { content: ""; position: absolute; inset: -8px; } /* 點擊範圍仍保持約 46px，手指好按 */
+
+.sheet__body {
+  --bg: #fff7ec;
+  --surface: #fffdf8;
+  --surface-2: #f1e6d3;
+  --ink: #231f1d;
+  --muted: #4a423b;
+  --line: #d8c9ad;
+  --shu: #c8382b;
+  --shu-ink: #fff;
+  --danger: #b42318;
+  --focus: #1a5fd0;
+  margin: 0 12px 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.sheet__body:has(> .menu) { margin: 0; padding: 4px var(--gutter-r) 16px var(--gutter-l); background: transparent; color: #fff; }
+.sheet__body .menu .menu__item { background: #fff7ec; border-color: #fff; color: #231f1d; }
+.sheet__body .menu .menu__item strong { color: #a3231a; }
+.sheet__body .menu .menu__item span { color: #4a423b; }
+.sheet__body .menu > .tip, .sheet__body .menu > .offline__note { color: #ffe9e5; }
+.sheet__body .menu > .offline__warn { color: #fff; font-weight: 700; }
+.sheet__body .menu .btn { background: #fff7ec; color: #231f1d; border-color: #fff; }
+.sheet__body .menu .btn--primary { background: #231f1d; color: #fff; border-color: #231f1d; }
+.sheet__body .menu .btn--quiet { background: transparent; color: #fff; border-color: #ffe9e5; }
+.sheet__body .menu input[type="search"], .sheet__body .menu textarea { background: #fff7ec; color: #231f1d; border-color: #fff; }
