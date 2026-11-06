@@ -156,6 +156,7 @@ button { cursor: pointer; }
   font-weight: 600;
 }
 .tab svg { width: 24px; height: 24px; }
+.tab .pin-icon { width: 22px; height: 26px; } /* Google 地圖舊版風格的紅色圖釘：顏色寫在圖裡，不隨分頁狀態變 */
 /* 目前所在的分頁：金色字 + 上方一條金色線，和另一個按鈕一眼就能分開 */
 .tab[aria-current="page"] { color: var(--gold); }
 .tab[aria-current="page"]::before {
@@ -171,17 +172,19 @@ button { cursor: pointer; }
 .fab {
   position: relative;
   z-index: 1;
-  width: 54px;
-  height: 54px;
-  margin-top: -20px;
-  border: 3px solid var(--bar); /* 和分頁列同色的外圈，把 ＋ 和地圖分開 */
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0; /* 完全在分頁列裡面，不再往上蓋到地圖 */
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: var(--shu);
   color: var(--shu-ink);
-  font-size: 2rem;
-  line-height: 1;
-  box-shadow: 0 0 0 2px var(--gold), 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 2px var(--gold);
 }
+.fab svg { width: 22px; height: 22px; display: block; } /* 用畫的加號，才會真的在圓心 */
 
 /* ---------- 地圖上的浮動元件 ---------- */
 
@@ -493,15 +496,20 @@ button { cursor: pointer; }
 
 @media (min-width: 700px) {
   .backdrop { display: none; }
+  /* 寬螢幕：面板夾在「縮放按鈕下方」與「分頁列上方」之間，不蓋到地圖右上的縮放鈕和下方的分頁列。 */
   .sheet {
     left: auto;
     right: 16px;
-    bottom: 16px;
-    width: 380px;
-    max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px));
+    top: auto;
+    bottom: calc(var(--tabbar-h, 64px) + 12px);
+    width: 340px;
+    max-height: calc(100dvh - var(--topbar-h, 56px) - var(--tabbar-h, 64px) - 96px);
     border-radius: 18px;
     padding-bottom: 0;
   }
+  .sheet .menu__item { padding: 10px 14px; }
+  .sheet .menu { gap: 8px; }
+  .sheet__head { padding-top: 10px; padding-bottom: 4px; }
   .listview .list, .listview .list__tools, .listview .backup { max-width: 720px; margin-left: auto; margin-right: auto; }
   .listview .list__tools { padding-left: 16px; padding-right: 16px; }
 }
@@ -530,3 +538,47 @@ button { cursor: pointer; }
 .menu textarea { resize: vertical; }
 .menu .loc__row { display: flex; gap: 8px; }
 .menu .loc__row input { flex: 1; min-width: 0; }
+
+/* ---------- 彈出面板配色（方案 B：朱紅外框 + 米白內容） ----------
+   朱紅是外框與標題列；一般表單的內容放在米白底的內襯裡（深色模式也一樣，所以文字固定用墨色）。
+   只有選項選單（新增、搜尋位置、貼上連結）是米白卡片直接放在朱紅上。 */
+
+.sheet { background: #c8382b; color: #fff; }
+.sheet__head h2 { color: #fff; }
+.icon-btn {
+  position: relative;
+  width: 30px; /* 原本 44px 的 2/3 */
+  height: 30px;
+  background: #fff;
+  color: #c8382b;
+  font-size: 1.125rem;
+}
+.icon-btn::after { content: ""; position: absolute; inset: -8px; } /* 點擊範圍仍保持約 46px，手指好按 */
+
+.sheet__body {
+  --bg: #fff7ec;
+  --surface: #fffdf8;
+  --surface-2: #f1e6d3;
+  --ink: #231f1d;
+  --muted: #4a423b;
+  --line: #d8c9ad;
+  --shu: #c8382b;
+  --shu-ink: #fff;
+  --danger: #b42318;
+  --focus: #1a5fd0;
+  margin: 0 12px 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.sheet__body:has(> .menu) { margin: 0; padding: 4px var(--gutter-r) 16px var(--gutter-l); background: transparent; color: #fff; }
+.sheet__body .menu .menu__item { background: #fff7ec; border-color: #fff; color: #231f1d; }
+.sheet__body .menu .menu__item strong { color: #a3231a; }
+.sheet__body .menu .menu__item span { color: #4a423b; }
+.sheet__body .menu > .tip, .sheet__body .menu > .offline__note { color: #ffe9e5; }
+.sheet__body .menu > .offline__warn { color: #fff; font-weight: 700; }
+.sheet__body .menu .btn { background: #fff7ec; color: #231f1d; border-color: #fff; }
+.sheet__body .menu .btn--primary { background: #231f1d; color: #fff; border-color: #231f1d; }
+.sheet__body .menu .btn--quiet { background: transparent; color: #fff; border-color: #ffe9e5; }
+.sheet__body .menu input[type="search"], .sheet__body .menu textarea { background: #fff7ec; color: #231f1d; border-color: #fff; }

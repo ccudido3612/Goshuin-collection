@@ -1097,6 +1097,15 @@ async function openOfflineSheet() {
 /* ---------- 事件綁定 ---------- */
 
 $('#fab').addEventListener('click', openAddMenu);
+
+// 讓 CSS 知道上方列與分頁列的實際高度（寬螢幕時，面板要夾在它們之間）。
+function syncBarHeights() {
+  const root = document.documentElement.style;
+  root.setProperty('--topbar-h', `${$('.topbar').offsetHeight}px`);
+  root.setProperty('--tabbar-h', `${$('.tabbar').offsetHeight}px`);
+}
+syncBarHeights();
+window.addEventListener('resize', syncBarHeights);
 $('#tabMap').addEventListener('click', () => setView('map'));
 $('#tabList').addEventListener('click', () => setView('list'));
 $('#sheetClose').addEventListener('click', closeSheet);
