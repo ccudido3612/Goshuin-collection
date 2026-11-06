@@ -9,7 +9,7 @@
 //
 // 這是「classic」service worker，不能用 import，所以 TILE_CACHE 的名稱要和 js/offline.js 的一致。
 
-const VERSION = '2026-11-06-6';
+const VERSION = '2026-11-06-7';
 const SHELL_CACHE = `shell-${VERSION}`;
 const TILE_CACHE = 'tiles-v1';
 const MAX_TILES = 4000; // 圖磚快取上限，超過就刪最舊的
