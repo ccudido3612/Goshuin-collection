@@ -393,7 +393,7 @@ button { cursor: pointer; }
   gap: 12px;
   padding: 14px var(--gutter-r) 8px var(--gutter-l);
 }
-.sheet__head h2 { margin: 0; font-size: 1.0625rem; }
+.sheet__head h2 { margin: 0; font-size: 0.75rem; }
 .icon-btn { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface-2); font-size: 1.5rem; line-height: 1; }
 .sheet__body {
   overflow-y: auto;
@@ -415,9 +415,9 @@ button { cursor: pointer; }
   background: var(--surface);
   text-align: left;
 }
-.menu__item strong { font-size: 1rem; }
-.menu__item span { font-size: 0.8125rem; color: var(--muted); }
-.tip { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+.menu__item strong { font-size: 0.75rem; }
+.menu__item span { font-size: 0.625rem; color: var(--muted); }
+.tip { margin: 0; font-size: 0.625rem; color: var(--muted); }
 
 .field { display: grid; gap: 6px; min-width: 0; }
 .field > label, .field__label { font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
