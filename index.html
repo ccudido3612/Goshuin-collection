@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c2024">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fffdf8">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1f1b18">
   <title>御朱印地圖</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -34,7 +34,14 @@
   <div class="app">
     <header class="topbar">
       <div class="brandwrap">
-        <h1 class="brand">御朱印地圖</h1>
+        <h1 class="brand"><svg class="brand__torii" viewBox="0 0 64 56" fill="currentColor" aria-hidden="true" focusable="false">
+  <path d="M1 4.5 Q32 15 63 4.5 L61 11 Q32 21 3 11 Z"/>
+  <rect x="8" y="14.5" width="48" height="3.6" rx="0.6"/>
+  <rect x="9" y="26" width="46" height="4.4" rx="0.6"/>
+  <rect x="29.6" y="17" width="4.8" height="9.5"/>
+  <path d="M12 17 H18.4 L19.4 54 H10.6 Z"/>
+  <path d="M45.6 17 H52 L53.4 54 H44.6 Z"/>
+</svg><span>御朱印地圖</span></h1>
         <span id="offlineChip" class="offline-chip" hidden>離線中</span>
       </div>
       <p class="stats" id="stats" aria-live="polite"></p>
@@ -81,9 +88,9 @@
     </main>
 
     <nav class="tabbar" aria-label="主要功能">
-      <button id="tabMap" class="tab" type="button" aria-current="page">地圖</button>
+      <button id="tabMap" class="tab" type="button" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.6"/></svg><span>地圖</span></button>
       <button id="fab" class="fab" type="button" aria-label="新增御朱印">＋</button>
-      <button id="tabList" class="tab" type="button">清單</button>
+      <button id="tabList" class="tab" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg><span>清單</span></button>
     </nav>
   </div>
 

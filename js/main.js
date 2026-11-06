@@ -30,7 +30,11 @@ import {
 } from './store.js';
 import { readPhotoMeta, makeThumb, photoKey } from './photo.js';
 import { createMap } from './map.js';
-import { parseGoogleList, itemsToEntries } from './gmaps.js';
+import { parseGoogleList, itemsToEntries, mergeGoogleImport } from './gmaps.js';
+import { KIND_ICON, svgElement } from './icons.js';
+
+const EXTERNAL_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
 import { parseMapsLink, createGeocoder } from './geocode.js';
 import { planTiles, iterateTiles, estimateMB } from './tiles.js';
 import {
@@ -169,8 +173,13 @@ function renderList() {
           {},
           h(
             'button',
-            { type: 'button', class: `row row--${entry.status}`, onclick: () => openDetail(entry.id, { fly: true }) },
-            h('span', { class: 'row__glyph', 'aria-hidden': 'true' }, KIND_GLYPH[entry.kind]),
+            { type: 'button', class: `row row--${entry.status} kind-${entry.kind}`, onclick: () => openDetail(entry.id, { fly: true }) },
+            h(
+              'span',
+              { class: 'row__kind', 'aria-hidden': 'true' },
+              h('span', { class: 'row__char' }, KIND_GLYPH[entry.kind]),
+              svgElement(KIND_ICON[entry.kind] ?? KIND_ICON.other, 'row__icon'),
+            ),
             h(
               'span',
               {},
@@ -379,6 +388,11 @@ function detailContent(entry) {
       'div',
       { class: 'field loc' },
       h('span', { class: 'field__label' }, '位置'),
+      entry.address
+        ? h('p', { class: 'loc__addr' }, entry.address)
+        : hasLocation(entry)
+          ? h('p', { class: 'loc__addr loc__addr--none' }, '尚未取得地址')
+          : null,
       h('p', { class: 'loc__text' }, locText),
       h(
         'div',
@@ -386,13 +400,11 @@ function detailContent(entry) {
         h('button', { type: 'button', class: 'btn', onclick: () => startPlacing({ id: entry.id }) }, '在地圖上點選'),
         h('button', { type: 'button', class: 'btn', onclick: () => setHere(entry) }, '用現在位置'),
         h('button', { type: 'button', class: 'btn', onclick: () => searchLocationFor(entry) }, '用名稱搜尋位置'),
-        hasLocation(entry)
-          ? h('a', { href: mapsUrl(entry.lat, entry.lng), target: '_blank', rel: 'noopener' }, '在 Google 地圖開啟')
-          : null,
-        entry.link
-          ? h('a', { href: entry.link, target: '_blank', rel: 'noopener noreferrer' }, '開啟原始 Google 地圖連結')
+        hasLocation(entry) && !entry.address
+          ? h('button', { type: 'button', class: 'btn', onclick: () => lookupAddress(entry) }, '查詢地址')
           : null,
       ),
+      googleLink(entry),
     ),
     h(
       'div',
@@ -415,6 +427,35 @@ function detailContent(entry) {
     h('button', { type: 'button', class: 'btn btn--primary', onclick: closeSheet }, '完成'),
     deleteBtn,
   );
+}
+
+/** 單一的「在 Google 地圖查看」按鈕：有原始 Google 連結就用它（會顯示 Google 自己的地點資料），否則用座標。 */
+function googleLink(entry) {
+  const href = entry.link || (hasLocation(entry) ? mapsUrl(entry.lat, entry.lng) : '');
+  if (!href) return null;
+  return h(
+    'a',
+    { class: 'btn btn--google', href, target: '_blank', rel: 'noopener noreferrer' },
+    '在 Google 地圖查看',
+    svgElement(EXTERNAL_ICON),
+  );
+}
+
+/** 座標 → 地址（Nominatim），存進紀錄。只到町／大字，不到門牌。 */
+async function lookupAddress(entry) {
+  busy('查詢地址中…');
+  try {
+    const { address, error } = await geocoder.reverse(entry.lat, entry.lng);
+    if (!address) {
+      toast(error ? `${error}。請確認有網路。` : '查不到這個位置的地址。', 5000);
+      return;
+    }
+    entry.address = address;
+    commit();
+    openDetail(entry.id);
+  } finally {
+    busy(null);
+  }
 }
 
 async function removePhoto(entry, index) {
@@ -476,6 +517,7 @@ function handleMapClick({ lat, lng }) {
     if (!entry) return;
     entry.lat = lat;
     entry.lng = lng;
+    entry.address = ''; // 位置換了，舊地址就不對了
     commit();
     openDetail(entry.id);
     toast('已更新位置');
@@ -545,6 +587,7 @@ async function setHere(entry) {
   if (!pos) return;
   entry.lat = pos.lat;
   entry.lng = pos.lng;
+  entry.address = '';
   commit();
   map.showMe(pos.lat, pos.lng, pos.accuracy);
   openDetail(entry.id, { fly: true });
@@ -559,7 +602,7 @@ const geocoder = createGeocoder();
  * 顯示「名稱 → 候選地點」面板，使用者點一個才算數（同名神社很多，不能全自動）。
  * onPick(候選)；onBack() 是面板底部那顆按鈕的動作。
  */
-function openLocationSearch({ title, query, onPick, onBack, backLabel }) {
+function openLocationSearch({ title, query, hint = null, onPick, onBack, backLabel }) {
   const list = h('div', { class: 'menu' });
   const input = h('input', { type: 'search', value: query, 'aria-label': '搜尋的名稱', autocomplete: 'off' });
   const searchBtn = h('button', { type: 'button', class: 'btn' }, '搜尋');
@@ -575,7 +618,7 @@ function openLocationSearch({ title, query, onPick, onBack, backLabel }) {
     const q = input.value.trim();
     if (!q) return;
     list.replaceChildren(h('p', { class: 'offline__note' }, `搜尋「${q}」中…`));
-    const { results, error } = await geocoder.search(q);
+    const { results, error } = await geocoder.search(q, { hint });
     if (!root.isConnected) return; // 等待期間使用者已經關掉面板
     if (results.length === 0) {
       list.replaceChildren(
@@ -589,7 +632,7 @@ function openLocationSearch({ title, query, onPick, onBack, backLabel }) {
           'button',
           { type: 'button', class: 'menu__item', onclick: () => onPick(c) },
           h('strong', {}, c.title || q),
-          h('span', {}, `${c.detail}（${c.source}）`),
+          h('span', {}, [c.detail, c.distanceKm !== undefined && !c.approximate ? `距 Google 地點約 ${c.distanceKm.toFixed(1)} 公里` : '', `來源：${c.source}`].filter(Boolean).join('・')),
         ),
       ),
       h('p', { class: 'offline__note' }, '請確認地名與地址是你要的那一個，再點選。'),
@@ -609,21 +652,23 @@ function searchLocationFor(entry) {
   openLocationSearch({
     title: '搜尋位置',
     query: entry.name,
+    hint: entry.hint,
     backLabel: '返回',
     onBack: () => openDetail(entry.id),
     onPick: (c) => {
       entry.lat = c.lat;
       entry.lng = c.lng;
+      if (c.address) entry.address = c.address;
       commit();
       openDetail(entry.id, { fly: true });
-      toast('已更新位置');
+      toast(c.approximate ? '已用推測位置，請在地圖上確認' : '已更新位置', 5000);
     },
   });
 }
 
 /** 加入一筆「想去」。已經有同一筆（同名稱與連結）就不重複加，回傳 null。 */
-function addWantEntry({ name, link, lat, lng }) {
-  const [entry] = itemsToEntries([{ name, note: '', link, lat, lng }]);
+function addWantEntry({ name, link, lat, lng, address = '', hint = null }) {
+  const [entry] = itemsToEntries([{ name, note: '', link, lat, lng, address, hint }]);
   const merged = mergeImported(state.entries, [entry]);
   if (merged.added === 0) return null;
   state.entries = merged.entries;
@@ -653,7 +698,7 @@ function addFromMapsText(raw) {
   }
   if (!parsed.query) {
     finish(
-      addWantEntry({ name: '', link: parsed.link, lat: null, lng: null }),
+      addWantEntry({ name: '', link: parsed.link, lat: null, lng: null, hint: parsed.hint }),
       '短連結裡沒有名稱，已先放進「待定位」。請在詳細頁輸入名稱後按「用名稱搜尋位置」。',
     );
     return;
@@ -661,13 +706,14 @@ function addFromMapsText(raw) {
   openLocationSearch({
     title: `加入「${parsed.name || parsed.query}」`,
     query: parsed.query,
+    hint: parsed.hint,
     backLabel: '找不到？先加入「待定位」',
     onBack: () => {
-      const entry = addWantEntry({ name: parsed.name, link: parsed.link, lat: null, lng: null });
+      const entry = addWantEntry({ name: parsed.name, link: parsed.link, lat: null, lng: null, hint: parsed.hint });
       closeSheet();
       if (entry) toast('已加入「待定位」', 4000);
     },
-    onPick: (c) => finish(addWantEntry({ name: parsed.name || c.title, link: parsed.link, lat: c.lat, lng: c.lng }), '已加入「想去」'),
+    onPick: (c) => finish(addWantEntry({ name: parsed.name || c.title, link: parsed.link, lat: c.lat, lng: c.lng, address: c.address ?? '', hint: parsed.hint }), '已加入「想去」'),
   });
 }
 
@@ -865,13 +911,13 @@ async function importGoogleList(file) {
       return;
     }
     const incoming = itemsToEntries(parsed.items);
-    const merged = mergeImported(state.entries, incoming);
+    const merged = mergeGoogleImport(state.entries, incoming);
     state.entries = merged.entries;
     commit();
-    const unlocated = incoming.filter((e) => !hasLocation(e)).length;
+    const unlocated = state.entries.filter((e) => !hasLocation(e)).length;
     toast(
-      `匯入 ${merged.added} 筆，略過 ${merged.skipped} 筆（已存在）` +
-        (unlocated ? `。其中 ${unlocated} 筆沒有座標，已放進「待定位」。` : ''),
+      `新增 ${merged.added} 筆、補上資料 ${merged.updated} 筆、略過 ${merged.skipped} 筆` +
+        (unlocated ? `。目前有 ${unlocated} 筆在「待定位」。` : ''),
       8000,
     );
   } catch (err) {

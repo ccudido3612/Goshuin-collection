@@ -1,22 +1,42 @@
 /* 御朱印地圖 — 樣式
    版面：手機直式優先（上方狀態列 / 中間地圖 / 下方分頁列），寬螢幕時詳細資料改成右側面板。
-   配色：朱（御朱印的朱紅）作為唯一強調色，其餘是帶一點冷調的中性色。 */
+   配色：和紙 / 墨 / 朱 / 金（鳥居與御朱印的顏色）；寺用靛藍，和神社的朱紅區分。 */
+
+@font-face {
+  font-family: "Yuji Mai Subset"; /* 社・印 — 行書風的毛筆字，只含用到的字 */
+  src: url("../fonts/yuji-mai-subset.woff2") format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yuji Boku Subset"; /* 寺・標題 — 較沉穩的楷書風毛筆字 */
+  src: url("../fonts/yuji-boku-subset.woff2") format("woff2");
+  font-display: swap;
+}
 
 :root {
-  --bg: #f2f3f1;
-  --surface: #ffffff;
-  --surface-2: #eceeec;
-  --ink: #1b1e21;
-  --muted: #5f676d;
-  --line: #d9dcda;
-  --shu: #c4312a;
+  /* 淺色：和紙底、白木面板、墨色分頁列、朱紅強調 */
+  --bg: #f6f1e7;
+  --surface: #fffdf8;
+  --surface-2: #ece5d6;
+  --ink: #231f1d;
+  --muted: #5e564e;
+  --line: #d8cfbd;
+  --shu: #c8382b;
   --shu-ink: #ffffff;
+  --ji: #2b4c7e;          /* 寺：藍（靛） */
+  --ji-ink: #ffffff;
+  --gold: #d4af37;
+  --bar: #231f1d;         /* 分頁列（墨） */
+  --bar-ink: #f6f1e7;
+  --bar-muted: #b5aca0;
   --danger: #b42318;
   --focus: #1a5fd0;
 
   --font-ui: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "PingFang TC",
     "Microsoft JhengHei", "Yu Gothic", system-ui, sans-serif;
-  --font-brand: "Hiragino Mincho ProN", "Noto Serif JP", "Yu Mincho", "Songti TC", "PMingLiU", serif;
+  --font-brand: "Yuji Boku Subset", "Hiragino Mincho ProN", "Noto Serif JP", "Yu Mincho", "Songti TC", "PMingLiU", serif;
+  --font-sha: "Yuji Mai Subset", var(--font-brand);
+  --font-tera: "Yuji Boku Subset", var(--font-brand);
 
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
@@ -25,14 +45,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121517;
-    --surface: #1c2024;
-    --surface-2: #262b30;
-    --ink: #ebeeed;
-    --muted: #9ba3a9;
-    --line: #30363b;
+    --bg: #14110f;
+    --surface: #1f1b18;
+    --surface-2: #2b2622;
+    --ink: #f1eadf;
+    --muted: #a89f94;
+    --line: #38312b;
     --shu: #e5574d;
     --shu-ink: #1b0f0e;
+    --ji: #8fb0e0;
+    --ji-ink: #0e1a2b;
+    --gold: #d9b35a;
+    --bar: #1f1b18;
+    --bar-ink: #f1eadf;
+    --bar-muted: #a89f94;
     --danger: #f0786d;
     --focus: #7fb0ff;
     color-scheme: dark;
@@ -68,22 +94,26 @@ button { cursor: pointer; }
 
 .topbar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: calc(env(safe-area-inset-top, 0px) + 10px) var(--gutter-r) 10px var(--gutter-l);
   background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px solid var(--shu);
 }
-.brandwrap { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brandwrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .offline-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 0.75rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
 .brand {
   margin: 0;
   font-family: var(--font-brand);
-  font-size: 1.25rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.3125rem;
+  font-weight: 400; /* 毛筆字體本身就夠粗，不再加粗 */
   letter-spacing: 0.08em;
 }
+.brand__torii { width: 26px; height: 23px; color: var(--shu); flex: none; }
 .stats { margin: 0; display: flex; gap: 10px; font-size: 0.875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .stat--got { color: var(--shu); font-weight: 700; }
 
@@ -93,34 +123,57 @@ button { cursor: pointer; }
 #map.is-placing .leaflet-interactive { cursor: crosshair; }
 
 .tabbar {
+  position: relative;
+  z-index: 600; /* 要在地圖（Leaflet 內部 z-index 到 1000）之上，中間的 ＋ 才不會被地圖蓋住 */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
   padding: 6px var(--gutter-r) calc(env(safe-area-inset-bottom, 0px) + 6px) var(--gutter-l);
-  background: var(--surface);
-  border-top: 1px solid var(--line);
+  background: var(--bar);
+  color: var(--bar-ink);
 }
 .tab {
-  min-height: 48px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
   border: 0;
   border-radius: var(--radius);
   background: transparent;
-  color: var(--muted);
+  color: var(--bar-muted);
+  font-size: 0.8125rem;
   font-weight: 600;
 }
-.tab[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
+.tab svg { width: 24px; height: 24px; }
+/* 目前所在的分頁：金色字 + 上方一條金色線，和另一個按鈕一眼就能分開 */
+.tab[aria-current="page"] { color: var(--gold); }
+.tab[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 22%;
+  right: 22%;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--gold);
+}
 .fab {
-  width: 56px;
-  height: 56px;
-  margin-top: -22px;
-  border: 0;
+  position: relative;
+  z-index: 1;
+  width: 54px;
+  height: 54px;
+  margin-top: -20px;
+  border: 3px solid var(--bar); /* 和分頁列同色的外圈，把 ＋ 和地圖分開 */
   border-radius: 50%;
   background: var(--shu);
   color: var(--shu-ink);
   font-size: 2rem;
   line-height: 1;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 2px var(--gold), 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 /* ---------- 地圖上的浮動元件 ---------- */
@@ -175,23 +228,25 @@ button { cursor: pointer; }
   color: inherit;
 }
 
-/* 圖釘：實心 = 已集，空心 = 想去。字是「社」「寺」。 */
-.pin { background: transparent; border: 0; }
+/* 圖釘：神社 = 朱紅、寺 = 靛藍。實心 = 已集，淺底 = 想去。外圍白色細框讓它在任何底圖上都清楚。 */
+.pin { background: transparent; border: 0; --kc: var(--shu); --kc-ink: var(--shu-ink); }
+.pin.kind-temple { --kc: var(--ji); --kc-ink: var(--ji-ink); }
 .pin span {
   display: grid;
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 2px solid var(--shu);
+  border: 2px solid var(--kc);
   border-radius: 50%;
-  font-family: var(--font-brand);
-  font-size: 1.1rem;
-  font-weight: 700;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  font-family: var(--font-sha);
+  font-size: 1.25rem;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #fff, 0 1px 6px rgba(0, 0, 0, 0.5);
 }
-.pin--got span { background: var(--shu); color: var(--shu-ink); }
-.pin--want span { background: var(--surface); color: var(--shu); }
-.pin.is-selected span { box-shadow: 0 0 0 5px color-mix(in srgb, var(--shu) 35%, transparent), 0 1px 5px rgba(0, 0, 0, 0.4); }
+.pin.kind-temple span { font-family: var(--font-tera); }
+.pin--got span { background: var(--kc); color: var(--kc-ink); }
+.pin--want span { background: #fffdf8; color: var(--kc); }
+.pin.is-selected span { box-shadow: 0 0 0 2px #fff, 0 0 0 7px color-mix(in srgb, var(--kc) 45%, transparent), 0 1px 6px rgba(0, 0, 0, 0.5); }
 .me-dot { fill: #2b6cff; fill-opacity: 1; stroke: #fff; stroke-width: 3; }
 .me-accuracy { fill: #2b6cff; fill-opacity: 0.12; stroke: #2b6cff; stroke-width: 1; }
 
@@ -249,18 +304,22 @@ button { cursor: pointer; }
   background: var(--surface);
   text-align: left;
 }
-.row__glyph {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--shu);
-  border-radius: 50%;
-  font-family: var(--font-brand);
-  font-weight: 700;
-  color: var(--shu);
+/* 清單左側：毛筆字（社／寺）+ 後面接圖案（鳥居／三重塔）。神社朱紅、寺靛藍，顏色與圖案雙重區分。 */
+.row { --kc: var(--shu); --kc-ink: var(--shu-ink); }
+.row.kind-temple { --kc: var(--ji); --kc-ink: var(--ji-ink); }
+.row.kind-other { --kc: var(--muted); }
+.row--got { border-color: color-mix(in srgb, var(--kc) 55%, var(--line)); }
+.row__kind {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 56px;
+  color: var(--kc);
 }
-.row--got .row__glyph { background: var(--shu); color: var(--shu-ink); }
+.row__char { font-family: var(--font-sha); font-size: 1.75rem; line-height: 1; }
+.row.kind-temple .row__char { font-family: var(--font-tera); }
+.row__icon { width: 24px; height: 28px; flex: none; }
+.row--got .row__kind { padding: 4px 6px; border-radius: 10px; background: color-mix(in srgb, var(--kc) 14%, transparent); }
 .row__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .row__meta { display: block; font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pill { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
@@ -339,6 +398,10 @@ button { cursor: pointer; }
 .field > label, .field__label { font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
 .field input[type="text"], .field input[type="date"], .field textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid var(--line);
@@ -359,7 +422,10 @@ button { cursor: pointer; }
 .loc { display: grid; gap: 8px; }
 .loc__text { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .loc__row { display: flex; flex-wrap: wrap; gap: 8px; }
-.loc a { align-self: center; }
+.loc__addr { margin: 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.loc__addr--none { color: var(--muted); }
+.btn--google { display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: var(--ink); background: var(--surface); border-color: var(--ji); }
+.btn--google svg { width: 18px; height: 18px; }
 .sample-hint { margin: 0; padding: 8px 12px; border-radius: var(--radius); background: var(--surface-2); font-size: 0.8125rem; color: var(--muted); }
 
 .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
@@ -385,7 +451,7 @@ button { cursor: pointer; }
   position: fixed;
   z-index: 3000;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+  top: calc(env(safe-area-inset-top, 0px) + 64px); /* 放在上方，才不會蓋住下方的「完成」等按鈕 */
   transform: translateX(-50%);
   width: max-content;
   max-width: min(92vw, 520px);

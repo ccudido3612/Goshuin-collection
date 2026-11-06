@@ -34,6 +34,10 @@ export function makeEntry(fields = {}) {
     note: text(fields.note, 2000),
     // 只接受 http(s) 連結（例如從 Google 地圖清單匯入的原始連結），避免 javascript: 之類的網址
     link: /^https?:\/\//i.test(fields.link ?? '') ? fields.link.slice(0, 1000) : '',
+    // 地址（參考用，來自搜尋結果、座標反查或 Google 的資料）
+    address: text(fields.address, 200),
+    // 依 Google 地點編號推測的大概位置，只用來縮小搜尋範圍，不是正式座標（見 placeid.js）
+    hint: isValidLatLng(fields.hint?.lat, fields.hint?.lng) ? { lat: fields.hint.lat, lng: fields.hint.lng } : null,
     photoIds: Array.isArray(fields.photoIds) ? fields.photoIds.filter((x) => typeof x === 'string') : [],
     photoKeys: Array.isArray(fields.photoKeys) ? fields.photoKeys.filter((x) => typeof x === 'string') : [],
     sample: Boolean(fields.sample),

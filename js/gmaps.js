@@ -8,7 +8,8 @@
 // 我手上沒有真實的 Takeout 檔，欄位名稱是依公開說明推測，所以對欄位名稱放寬比對。
 
 import { isValidLatLng } from './geo.js';
-import { makeEntry } from './model.js';
+import { makeEntry, hasLocation } from './model.js';
+import { placeHint, placeKey } from './placeid.js';
 
 /* ---------- CSV ---------- */
 
@@ -72,6 +73,7 @@ export function parseCsvList(text) {
       link,
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
+      hint: placeHint(link),
     };
   });
 }
@@ -97,7 +99,9 @@ export function parseGeoJson(obj) {
   for (const f of features) {
     const p = f?.properties ?? {};
     const loc = p.Location ?? p.location ?? {};
-    const name = String(p.Title ?? p.title ?? p.name ?? p.Name ?? loc['Business Name'] ?? '').trim();
+    // Takeout 的「已加星號的地點」用小寫欄位（location.name / location.address / google_maps_url），舊版或其他工具用大寫
+    const name = String(p.Title ?? p.title ?? p.name ?? p.Name ?? loc['Business Name'] ?? loc.name ?? '').trim();
+    const address = String(loc.Address ?? loc.address ?? '').trim();
     const link = String(p['Google Maps URL'] ?? p.google_maps_url ?? p.url ?? p.URL ?? '').trim();
     const note = String(p.Comment ?? p.comment ?? p.Note ?? p.note ?? p.description ?? '').trim();
     const c = f?.geometry?.type === 'Point' ? f.geometry.coordinates : null; // GeoJSON 順序是 [經度, 緯度]
@@ -108,7 +112,7 @@ export function parseGeoJson(obj) {
       const fromUrl = coordsFromUrl(link);
       if (fromUrl) (lat = fromUrl.lat), (lng = fromUrl.lng);
     }
-    if (name || link) out.push({ name, note, link, lat, lng });
+    if (name || link) out.push({ name, note, link, lat, lng, address, hint: placeHint(link) });
   }
   return out;
 }
@@ -141,8 +145,15 @@ export function parseKml(text) {
       if (isValidLatLng(y, x)) (lat = y), (lng = x);
     }
     const name = tag(block, 'name');
-    const note = tag(block, 'description').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (name || point) out.push({ name, note, link: '', lat, lng });
+    // My Maps 匯入 Takeout CSV 後再匯出的 KML：筆記與網址放在 ExtendedData，description 只是它們的合併文字
+    const data = (label) => {
+      const m = block.match(new RegExp(`<Data\\s+name="${label}"[^>]*>\\s*<value>([\\s\\S]*?)</value>`, 'i'));
+      return m ? decodeXml(m[1]) : '';
+    };
+    const link = data('網址') || data('URL') || data('url');
+    const note = [data('筆記') || data('Note'), data('留言') || data('Comment')].filter(Boolean).join('\n')
+      || (link ? '' : tag(block, 'description').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+    if (name || point) out.push({ name, note, link, lat, lng, hint: placeHint(link) });
   }
   return out;
 }
@@ -179,14 +190,15 @@ const hash = (s) => {
 export const guessKind = (name) => (/[寺院]/.test(name) && !/神社|神宮|八幡|稲荷|稻荷/.test(name) ? 'temple' : 'shrine');
 
 /**
- * 轉成「想去」紀錄。id 由名稱與連結算出，同一份清單再匯入一次不會重複
- * （mergeImported 會用 id 略過已存在的）。
+ * 轉成「想去」紀錄。id 優先由 Google 的地點識別碼算出（同一個地點，不論是從 CSV、KML 或網址來的，id 都一樣），
+ * 沒有的話由名稱與連結算出。同一份清單再匯入一次不會重複。
  */
 export function itemsToEntries(items) {
   const seen = new Set();
   const entries = [];
   for (const item of items) {
-    const id = `gm_${hash(`${item.name}|${item.link}|${item.lat}|${item.lng}`)}`;
+    const key = placeKey(item.link);
+    const id = key ? `gm_${key}` : `gm_${hash(`${item.name}|${item.link}|${item.lat}|${item.lng}`)}`;
     if (seen.has(id)) continue;
     seen.add(id);
     entries.push(
@@ -199,8 +211,40 @@ export function itemsToEntries(items) {
         lng: item.lng,
         note: item.note,
         link: item.link,
+        address: item.address ?? '',
+        hint: item.hint ?? null,
       }),
     );
   }
   return entries;
+}
+
+const normName = (s) => String(s ?? '').replace(/\s+/g, '').toLowerCase();
+
+/**
+ * 把匯入的紀錄併進現有清單。已經有的（同 id、同一個 Google 地點、或同名稱）不新增，
+ * 但會把缺的資料補進去：沒有位置就補位置、沒有推測位置就補推測位置、沒有地址就補地址。
+ * 已經有位置的紀錄，位置絕不覆蓋。回傳 { entries, added, updated, skipped }。
+ */
+export function mergeGoogleImport(existing, incoming) {
+  const entries = existing.map((e) => ({ ...e }));
+  const result = { entries, added: 0, updated: 0, skipped: 0 };
+  for (const item of incoming) {
+    const key = placeKey(item.link);
+    const match = entries.find((e) => e.id === item.id || (key && placeKey(e.link) === key) || (normName(e.name) && normName(e.name) === normName(item.name)));
+    if (!match) {
+      entries.push(item);
+      result.added += 1;
+      continue;
+    }
+    let changed = false;
+    if (!hasLocation(match) && hasLocation(item)) ((match.lat = item.lat), (match.lng = item.lng), (changed = true));
+    if (!match.hint && item.hint) ((match.hint = item.hint), (changed = true));
+    if (!match.address && item.address) ((match.address = item.address), (changed = true));
+    if (!match.link && item.link) ((match.link = item.link), (changed = true));
+    if (!match.note && item.note) ((match.note = item.note), (changed = true));
+    if (changed) result.updated += 1;
+    else result.skipped += 1;
+  }
+  return result;
 }

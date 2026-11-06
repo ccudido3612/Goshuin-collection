@@ -80,3 +80,14 @@ test('validateBackup 擋掉不是這個 app 的檔案，並過濾壞照片', () 
   assert.equal(r.ok, true);
   assert.deepEqual(Object.keys(r.photos), ['p1']);
 });
+
+test('makeEntry：address 與 hint（推測位置）', async () => {
+  const { makeEntry } = await import('../js/model.js');
+  const e = makeEntry({ name: 'x', address: '京都府', hint: { lat: 34.9, lng: 135.6 } });
+  assert.equal(e.address, '京都府');
+  assert.deepEqual(e.hint, { lat: 34.9, lng: 135.6 });
+  const bad = makeEntry({ name: 'x', hint: { lat: 999, lng: 1 }, address: 5 });
+  assert.equal(bad.hint, null);
+  assert.equal(bad.address, '');
+  assert.equal(makeEntry({}).hint, null);
+});

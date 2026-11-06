@@ -56,7 +56,7 @@ export function createMap(container, { onMapClick, onPinClick }) {
 
   const iconFor = (entry, selected) =>
     L.divIcon({
-      className: `pin pin--${entry.status}${selected ? ' is-selected' : ''}`,
+      className: `pin pin--${entry.status} kind-${entry.kind}${selected ? ' is-selected' : ''}`,
       html: `<span>${KIND_GLYPH[entry.kind] ?? '印'}</span>`,
       iconSize: [36, 36],
       iconAnchor: [18, 18],
