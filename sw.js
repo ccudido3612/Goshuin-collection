@@ -9,7 +9,7 @@
 //
 // 這是「classic」service worker，不能用 import，所以 TILE_CACHE 的名稱要和 js/offline.js 的一致。
 
-const VERSION = '2026-11-06-3';
+const VERSION = '2026-11-06-4';
 const SHELL_CACHE = `shell-${VERSION}`;
 const TILE_CACHE = 'tiles-v1';
 const MAX_TILES = 4000; // 圖磚快取上限，超過就刪最舊的
@@ -37,7 +37,7 @@ const SHELL_FILES = [
   'js/placeid.js',
   'js/icons.js',
   'fonts/aoyagi-subset.woff2',
-  'fonts/aihara-subset.woff2',
+  'fonts/masa-subset.woff2',
   'fonts/yuji-boku-subset.woff2',
   'vendor/leaflet/leaflet.js',
   'vendor/leaflet/leaflet.css',

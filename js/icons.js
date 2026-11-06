@@ -2,12 +2,12 @@
 // 全部用 currentColor 填色，顏色由外層的 CSS 決定，所以深淺色模式會自動切換。
 // 這裡只放「寫死的常數字串」，不會放進任何使用者輸入，所以用 innerHTML 是安全的。
 
-/** 鳥居：笠木（上橫梁，兩端翹起）、島木、貫、額束、兩根柱。 */
+/** 鳥居：笠木（上橫梁，兩端翹起）、島木、貫、額束（金色）、兩根柱。 */
 export const TORII = `<svg viewBox="0 0 64 56" fill="currentColor" aria-hidden="true" focusable="false">
   <path d="M1 4.5 Q32 15 63 4.5 L61 11 Q32 21 3 11 Z"/>
   <rect x="8" y="14.5" width="48" height="3.6" rx="0.6"/>
   <rect x="9" y="26" width="46" height="4.4" rx="0.6"/>
-  <rect x="29.6" y="17" width="4.8" height="9.5"/>
+  <rect class="gold" x="28" y="18.1" width="8" height="7.9" rx="0.5"/>
   <path d="M12 17 H18.4 L19.4 54 H10.6 Z"/>
   <path d="M45.6 17 H52 L53.4 54 H44.6 Z"/>
 </svg>`;
@@ -16,11 +16,11 @@ export const TORII = `<svg viewBox="0 0 64 56" fill="currentColor" aria-hidden="
 const roof = (cx, top, wTop, wBot, h) =>
   `<path d="M${cx} ${top} Q${cx + wTop} ${top + h * 0.28} ${cx + wBot} ${top + h * 0.58} L${cx + wBot * 0.6} ${top + h} H${cx - wBot * 0.6} L${cx - wBot} ${top + h * 0.58} Q${cx - wTop} ${top + h * 0.28} ${cx} ${top} Z"/>`;
 
-/** 三重塔：相輪（頂上的尖塔）、三層屋簷與塔身、基壇。 */
+/** 三重塔：相輪（頂上的尖塔，金色）、三層屋簷與塔身、基壇。 */
 export const PAGODA = `<svg viewBox="0 0 48 64" fill="currentColor" aria-hidden="true" focusable="false">
-  <rect x="23.1" y="0.8" width="1.8" height="11"/>
-  <rect x="21.2" y="3.6" width="5.6" height="1.3" rx="0.4"/>
-  <rect x="21.7" y="6.6" width="4.6" height="1.3" rx="0.4"/>
+  <rect class="gold" x="23.1" y="0.8" width="1.8" height="11"/>
+  <rect class="gold" x="20.8" y="3.4" width="6.4" height="1.8" rx="0.5"/>
+  <rect class="gold" x="21.5" y="6.6" width="5" height="1.8" rx="0.5"/>
   ${roof(24, 10, 7, 12, 8.5)}
   <rect x="19.5" y="18" width="9" height="6.5"/>
   ${roof(24, 23.5, 9, 16, 9.5)}

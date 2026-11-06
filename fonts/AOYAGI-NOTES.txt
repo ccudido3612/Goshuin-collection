@@ -1,0 +1,10 @@
+青柳隷書しも（aoyagireisyosimo）— 本專案只用其中的「社」「印」兩字（fonts/aoyagi-subset.woff2）。
+官方頁面：https://opentype.jp/aoyagireisho.htm　作者：SIMO
+
+原字型壓縮檔附的說明文件放在 fonts/aoyagi/（作者要求散布時一併附上）：
+  FontUsage.txt        = フォントの使用方法（原檔 Shift-JIS 編碼，用日文編碼開啟才不會亂碼）
+  FontDescription.pdf  = フォントの解説（PDF）
+  FontDescription.doc  = フォントの解説（Word）
+
+「フォントの使用方法」重點：免費、使用沒有條件、商用 OK；可免費再散布但不能收費；散布時必須附上這兩份文件。
+文件沒有提到 WOFF2 轉換或只切出部分字形；本專案只用到 3 個字，若想更保險可寫信給作者（simo.shin@nifty.com，文件說使用不需聯絡，但歡迎告知）。

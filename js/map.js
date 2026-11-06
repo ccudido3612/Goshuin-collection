@@ -66,8 +66,8 @@ export function createMap(container, { onMapClick, onPinClick }) {
     L.divIcon({
       className: `pin pin--${entry.status} kind-${entry.kind}${selected ? ' is-selected' : ''}`,
       html: kindMarkHtml(entry.kind),
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
     });
 
   return {
