@@ -1,0 +1,437 @@
+/* 御朱印地圖 — 樣式
+   版面：手機直式優先（上方狀態列 / 中間地圖 / 下方分頁列），寬螢幕時詳細資料改成右側面板。
+   配色：朱（御朱印的朱紅）作為唯一強調色，其餘是帶一點冷調的中性色。 */
+
+:root {
+  --bg: #f2f3f1;
+  --surface: #ffffff;
+  --surface-2: #eceeec;
+  --ink: #1b1e21;
+  --muted: #5f676d;
+  --line: #d9dcda;
+  --shu: #c4312a;
+  --shu-ink: #ffffff;
+  --danger: #b42318;
+  --focus: #1a5fd0;
+
+  --font-ui: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "PingFang TC",
+    "Microsoft JhengHei", "Yu Gothic", system-ui, sans-serif;
+  --font-brand: "Hiragino Mincho ProN", "Noto Serif JP", "Yu Mincho", "Songti TC", "PMingLiU", serif;
+
+  --gutter-l: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-r: max(16px, env(safe-area-inset-right, 0px));
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121517;
+    --surface: #1c2024;
+    --surface-2: #262b30;
+    --ink: #ebeeed;
+    --muted: #9ba3a9;
+    --line: #30363b;
+    --shu: #e5574d;
+    --shu-ink: #1b0f0e;
+    --danger: #f0786d;
+    --focus: #7fb0ff;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- 整體版面 ---------- */
+
+.app {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) var(--gutter-r) 10px var(--gutter-l);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.brandwrap { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.offline-chip { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 0.75rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.brand {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.stats { margin: 0; display: flex; gap: 10px; font-size: 0.875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stat--got { color: var(--shu); font-weight: 700; }
+
+.stage { position: relative; min-height: 0; }
+#map { position: absolute; inset: 0; isolation: isolate; background: var(--surface-2); }
+#map.is-placing { cursor: crosshair; }
+#map.is-placing .leaflet-interactive { cursor: crosshair; }
+
+.tabbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--gutter-r) calc(env(safe-area-inset-bottom, 0px) + 6px) var(--gutter-l);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.tab {
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+}
+.tab[aria-current="page"] { color: var(--ink); background: var(--surface-2); }
+.fab {
+  width: 56px;
+  height: 56px;
+  margin-top: -22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--shu);
+  color: var(--shu-ink);
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- 地圖上的浮動元件 ---------- */
+
+.map-tools {
+  position: absolute;
+  z-index: 500;
+  top: 12px;
+  left: var(--gutter-l);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.leaflet-top.leaflet-right { margin-right: max(0px, calc(env(safe-area-inset-right, 0px) - 6px)); }
+.leaflet-bar a { background-color: var(--surface); color: var(--ink); border-bottom-color: var(--line); }
+.leaflet-container { font-family: var(--font-ui); }
+.leaflet-container a { color: var(--focus); }
+
+.placing {
+  position: absolute;
+  z-index: 600;
+  left: var(--gutter-l);
+  right: var(--gutter-r);
+  top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: var(--radius);
+  background: var(--shu);
+  color: var(--shu-ink);
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.placing button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+}
+
+/* 圖釘：實心 = 已集，空心 = 想去。字是「社」「寺」。 */
+.pin { background: transparent; border: 0; }
+.pin span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--shu);
+  border-radius: 50%;
+  font-family: var(--font-brand);
+  font-size: 1.1rem;
+  font-weight: 700;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+.pin--got span { background: var(--shu); color: var(--shu-ink); }
+.pin--want span { background: var(--surface); color: var(--shu); }
+.pin.is-selected span { box-shadow: 0 0 0 5px color-mix(in srgb, var(--shu) 35%, transparent), 0 1px 5px rgba(0, 0, 0, 0.4); }
+.me-dot { fill: #2b6cff; fill-opacity: 1; stroke: #fff; stroke-width: 3; }
+.me-accuracy { fill: #2b6cff; fill-opacity: 0.12; stroke: #2b6cff; stroke-width: 1; }
+
+/* ---------- 清單分頁 ---------- */
+
+.listview {
+  position: absolute;
+  inset: 0;
+  z-index: 800;
+  overflow-y: auto;
+  background: var(--bg);
+  padding-bottom: 24px;
+}
+.list__tools {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  padding: 12px var(--gutter-r) 12px var(--gutter-l);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.list__tools input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.875rem;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.list { list-style: none; margin: 0; padding: 8px var(--gutter-r) 0 var(--gutter-l); display: grid; gap: 8px; }
+.list__empty { padding: 32px 8px; text-align: center; color: var(--muted); }
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+.row__glyph {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--shu);
+  border-radius: 50%;
+  font-family: var(--font-brand);
+  font-weight: 700;
+  color: var(--shu);
+}
+.row--got .row__glyph { background: var(--shu); color: var(--shu-ink); }
+.row__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.row__meta { display: block; font-size: 0.8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pill { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.pill--got { border-color: var(--shu); color: var(--shu); font-weight: 700; }
+.pill--warn { border-style: dashed; }
+
+.backup { margin: 24px var(--gutter-r) 0 var(--gutter-l); padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.backup h2 { margin: 0 0 4px; font-size: 1rem; }
+.backup p { margin: 0 0 12px; font-size: 0.875rem; color: var(--muted); }
+.backup__row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-weight: 600;
+}
+.btn--primary { background: var(--shu); border-color: var(--shu); color: var(--shu-ink); }
+.btn--quiet { background: transparent; }
+.btn--danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.btn.is-armed { background: var(--danger); color: var(--shu-ink); border-color: var(--danger); }
+
+/* ---------- 底部面板（寬螢幕時是右側面板） ---------- */
+
+.backdrop { position: fixed; inset: 0; z-index: 1900; background: rgba(0, 0, 0, 0.4); }
+.sheet {
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: min(82dvh, 760px);
+  border-radius: 18px 18px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px var(--gutter-r) 8px var(--gutter-l);
+}
+.sheet__head h2 { margin: 0; font-size: 1.0625rem; }
+.icon-btn { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface-2); font-size: 1.5rem; line-height: 1; }
+.sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px var(--gutter-r) 20px var(--gutter-l);
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.menu { display: grid; gap: 10px; }
+.menu__item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+}
+.menu__item strong { font-size: 1rem; }
+.menu__item span { font-size: 0.8125rem; color: var(--muted); }
+.tip { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > label, .field__label { font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
+.field input[type="text"], .field input[type="date"], .field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.field textarea { resize: vertical; }
+.seg { display: flex; gap: 6px; }
+.seg__btn {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-weight: 600;
+}
+.seg__btn[aria-pressed="true"] { background: var(--shu); border-color: var(--shu); color: var(--shu-ink); }
+.loc { display: grid; gap: 8px; }
+.loc__text { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.loc__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.loc a { align-self: center; }
+.sample-hint { margin: 0; padding: 8px 12px; border-radius: var(--radius); background: var(--surface-2); font-size: 0.8125rem; color: var(--muted); }
+
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.photo { position: relative; margin: 0; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo__rm {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+}
+.photo__rm.is-armed { background: var(--danger); }
+
+/* ---------- 提示訊息 ---------- */
+
+.toast {
+  position: fixed;
+  z-index: 3000;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(92vw, 520px);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.9375rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.busy { position: fixed; inset: 0; z-index: 3500; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); }
+.busy p { margin: 0; padding: 14px 20px; border-radius: var(--radius); background: var(--surface); font-weight: 600; }
+
+.notice { margin: 16px; padding: 16px; border: 2px solid var(--shu); border-radius: var(--radius); background: var(--surface); }
+.notice p { margin: 0 0 8px; }
+.notice code { padding: 2px 6px; border-radius: 6px; background: var(--surface-2); }
+
+@media (min-width: 700px) {
+  .backdrop { display: none; }
+  .sheet {
+    left: auto;
+    right: 16px;
+    bottom: 16px;
+    width: 380px;
+    max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px));
+    border-radius: 18px;
+    padding-bottom: 0;
+  }
+  .listview .list, .listview .list__tools, .listview .backup { max-width: 720px; margin-left: auto; margin-right: auto; }
+  .listview .list__tools { padding-left: 16px; padding-right: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+
+/* ---------- 離線地圖 ---------- */
+
+.offline { display: flex; flex-direction: column; gap: 14px; }
+.offline p { margin: 0; }
+.offline__status { padding: 12px; border-radius: var(--radius); background: var(--surface-2); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.offline__status p + p { margin-top: 4px; }
+.offline__note { font-size: 0.8125rem; color: var(--muted); }
+.offline__plan { font-weight: 700; font-variant-numeric: tabular-nums; }
+.offline__warn { font-size: 0.875rem; color: var(--danger); }
+.offline select { min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.progress { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.progress > span { display: block; height: 100%; width: 0; background: var(--shu); transition: width 0.15s; }
+.btn:disabled { opacity: 0.45; }

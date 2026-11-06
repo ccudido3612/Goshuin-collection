@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1c2024">
+  <title>御朱印地圖</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="御朱印">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // 直接雙擊 index.html（file://）時，瀏覽器會擋掉 ES module，整頁會是空的。
+    // 先在這裡顯示說明，避免使用者以為是壞掉了。
+    if (location.protocol === 'file:') {
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('fileNotice').hidden = false;
+      });
+    }
+  </script>
+</head>
+<body>
+  <div id="fileNotice" class="notice" hidden>
+    <p><strong>請不要直接雙擊開啟這個檔案。</strong></p>
+    <p>在專案資料夾打開終端機，執行 <code>python -m http.server 8000</code>，
+       再用瀏覽器開 <code>http://localhost:8000</code>。</p>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brandwrap">
+        <h1 class="brand">御朱印地圖</h1>
+        <span id="offlineChip" class="offline-chip" hidden>離線中</span>
+      </div>
+      <p class="stats" id="stats" aria-live="polite"></p>
+    </header>
+
+    <main class="stage">
+      <div id="map" role="application" aria-label="御朱印地圖"></div>
+
+      <div class="map-tools">
+        <button id="locateBtn" class="tool" type="button">現在位置</button>
+        <button id="baseBtn" class="tool" type="button">切換底圖</button>
+        <button id="offlineBtn" class="tool" type="button">離線地圖</button>
+      </div>
+
+      <div id="placingBar" class="placing" hidden>
+        <span id="placingText"></span>
+        <button id="placingCancel" type="button">取消</button>
+      </div>
+
+      <section id="listView" class="listview" aria-label="清單" hidden>
+        <div class="list__tools">
+          <input id="listSearch" type="search" placeholder="搜尋名稱或備註" aria-label="搜尋名稱或備註" autocomplete="off">
+          <div id="listFilters" class="chips" role="group" aria-label="篩選">
+            <button type="button" class="chip" data-filter="all" aria-pressed="true">全部</button>
+            <button type="button" class="chip" data-filter="want" aria-pressed="false">想去</button>
+            <button type="button" class="chip" data-filter="got" aria-pressed="false">已集</button>
+            <button type="button" class="chip" data-filter="unlocated" aria-pressed="false">待定位</button>
+          </div>
+        </div>
+
+        <ul id="listBody" class="list"></ul>
+
+        <section class="backup" aria-labelledby="backupTitle">
+          <h2 id="backupTitle">資料備份</h2>
+          <p>紀錄和照片只存在這支手機的這個瀏覽器裡。換手機、清除瀏覽資料之前，請先匯出備份。</p>
+          <div class="backup__row">
+            <button id="exportBtn" type="button" class="btn">匯出備份</button>
+            <button id="importBtn" type="button" class="btn">匯入備份</button>
+            <button id="gmapsBtn" type="button" class="btn">匯入 Google 地圖清單</button>
+            <button id="clearSamplesBtn" type="button" class="btn btn--quiet" hidden>清除範例</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="tabbar" aria-label="主要功能">
+      <button id="tabMap" class="tab" type="button" aria-current="page">地圖</button>
+      <button id="fab" class="fab" type="button" aria-label="新增御朱印">＋</button>
+      <button id="tabList" class="tab" type="button">清單</button>
+    </nav>
+  </div>
+
+  <div id="backdrop" class="backdrop" hidden></div>
+  <section id="sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+    <header class="sheet__head">
+      <h2 id="sheetTitle"></h2>
+      <button id="sheetClose" class="icon-btn" type="button" aria-label="關閉">×</button>
+    </header>
+    <div id="sheetBody" class="sheet__body"></div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="busy" class="busy" hidden><p id="busyText"></p></div>
+
+  <input id="photoInput" type="file" accept="image/*" multiple hidden>
+  <input id="attachInput" type="file" accept="image/*" multiple hidden>
+  <input id="importInput" type="file" accept="application/json,.json" hidden>
+  <input id="gmapsInput" type="file" accept=".csv,.json,.geojson,.kml,text/csv,application/json" hidden>
+
+  <noscript><p class="notice">這個頁面需要 JavaScript 才能使用。</p></noscript>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
